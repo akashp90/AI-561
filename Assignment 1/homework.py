@@ -4,10 +4,10 @@ class Node:
 	y_cord = None
 	elevation = None
 
-	def __init__(self, x, y, elevation):
+	def __init__(self, x, y, parent):
 		self.x_cord = x
 		self.y_cord = y
-		self.elevation = elevation
+		self.parent = parent
 
 def get_surrounding_locations(x_cord, y_cord):
 	north = south = east = west = north_east = north_west = south_west = south_east = None
@@ -32,12 +32,15 @@ def get_surrounding_locations(x_cord, y_cord):
 
 def is_move_allowed(start_position, end_position):
 	# Stamina check
-	print("Move allowed from " + str(start_position) + "to " + str(end_position) + "??")
+	#print("Move allowed from " + str(start_position) + "to " + str(end_position) + "??")
+	is_allowed = False
+	if end_position is None:
+		#print(is_allowed)
+		return False
 	start_x, start_y = start_position
 	dest_x, dest_y = end_position
 
 	is_dest_tree = True if ski_map[dest_y][dest_x] < 0 else False
-	is_allowed = False
 
 
 	if ski_map[start_y][start_x] >= abs(ski_map[dest_y][dest_x]) and is_dest_tree:
@@ -50,7 +53,7 @@ def is_move_allowed(start_position, end_position):
 	elif ski_map[start_y][start_x] >= ski_map[dest_y][dest_x] and not is_dest_tree:
 		is_allowed = True
 
-	print(is_allowed)
+	#print(is_allowed)
 	return is_allowed
 
 
@@ -59,7 +62,7 @@ def get_movable_locations(position):
 	x_cord, y_cord = position
 
 	surrounding_locations = get_surrounding_locations(x_cord, y_cord)
-	print("surrounding_locations: ", str(surrounding_locations))
+	#print("surrounding_locations: ", str(surrounding_locations))
 	movable_locations = []
 
 	for surrounding_location in surrounding_locations:
@@ -71,9 +74,25 @@ def get_movable_locations(position):
 	return movable_locations
 
 
-def find_bfs_cost(start, end):
-	unvisited_nodes = []
+def bfs(start, end, parent=None, visited=[], cost=0):
+	
+	start_x, start_y = start
+	node = Node(x=start_x, y=start_y, parent=parent)
+	visited.append(node)
+	print("Node--> x: " + str(start_x) + " y: " + str(start_y))
+
 	movable_locations = get_movable_locations(start)
+	print("ENd: " + str(end))
+
+	for movable_location in movable_locations:
+		print("Movable: " + str(movable_location))
+		if movable_location is not end:
+			cost = cost + 1
+			cost = bfs(start, end, parent=node, cost=cost)
+		else:
+			return 1
+
+	return cost
 
 def print_map(ski_map):
 	for row in ski_map:
@@ -127,6 +146,6 @@ for lodge in lodge_locs:
 print(print_map(ski_map))
 print("Stamina: "+ str(stamina))
 
-print("Movable locations for 1, 1")
-print(get_movable_locations((1,1)))
-
+#print("Movable locations for 1, 1")
+#print(get_movable_locations((1,1)))
+bfs((4,4), (2,1))
