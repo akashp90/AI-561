@@ -1,13 +1,21 @@
+import sys
+sys.setrecursionlimit(100)
 class Node:
 	children = []
 	x_cord = None
 	y_cord = None
 	elevation = None
 
-	def __init__(self, x, y, parent):
+	def __init__(self, x, y, parent=None):
 		self.x_cord = x
 		self.y_cord = y
 		self.parent = parent
+
+	def __eq__(self, other):
+		return self.x_cord == other.x_cord and self.y_cord == other.y_cord
+
+	def __str__(self):
+		return "(" + str(self.x_cord) + "," + str(self.y_cord) + ")" 
 
 def get_surrounding_locations(x_cord, y_cord):
 	north = south = east = west = north_east = north_west = south_west = south_east = None
@@ -73,24 +81,63 @@ def get_movable_locations(position):
 
 	return movable_locations
 
+def convert_locations_to_nodes(locations, parent):
+	nodes = []
+	for location in locations:
+		node = Node(x=location[0], y=location[1], parent=parent)
+		nodes.append(node)
 
-def bfs(start, end, parent=None, visited=[], cost=0):
+	return nodes
 	
-	start_x, start_y = start
-	node = Node(x=start_x, y=start_y, parent=parent)
-	visited.append(node)
-	print("Node--> x: " + str(start_x) + " y: " + str(start_y))
 
-	movable_locations = get_movable_locations(start)
-	print("ENd: " + str(end))
 
-	for movable_location in movable_locations:
-		print("Movable: " + str(movable_location))
-		if movable_location is not end:
-			cost = cost + 1
-			cost = bfs(start, end, parent=node, cost=cost)
-		else:
-			return 1
+def bfs(end, parent=None, visited=[], cost=0, enqueued=[]):	
+	node = enqueued.pop(0)
+	cost = cost+1
+	
+	if parent is not None:	
+		node.parent = parent
+
+	visited.append((node.x_cord, node.y_cord))
+	print("Visited: " + str(visited))
+
+	print(f"Visiting Node({node.x_cord},{node.y_cord}) with elevation")
+	print(ski_map[node.y_cord][node.x_cord])
+
+	movable_locations = get_movable_locations((node.x_cord, node.y_cord))
+	movable_nodes = convert_locations_to_nodes(movable_locations, parent)
+	print("Movable nodes: ")
+	print_node_list(movable_nodes)
+	
+	for movable_node in movable_nodes:
+		if movable_node not in enqueued:
+			enqueued.append(movable_node)
+	
+
+	print("enqueued: ")
+	print_node_list(enqueued)
+	print("****")
+	if (node.x_cord, node.y_cord) == end:
+	 	print("Arrived at destination")
+	 	return cost
+	else:
+		return bfs(end, parent=node, cost=cost, visited=visited, enqueued=enqueued)
+
+	#print("ENd: " + str(end))
+
+	# for movable_location in  movable_locations:
+	# 	#print("Movable: " + str(movable_location))
+	# 	if movable_location is end:
+	# 		print("Arrived at destination")
+	# 	if movable_location is not end and movable_location not in visited:
+	# 		next_node = Node(x=movable_location[1], y=movable_location[0], parent=node)
+
+	# 		if next_node not in visited:
+	# 			cost = cost + 1
+	# 			enqueued.append(next_node)
+	# 			cost = bfs(end, parent=node, cost=cost, visited=visited, enqueued=enqueued)
+	# 	else:
+	# 		return 1
 
 	return cost
 
@@ -98,6 +145,9 @@ def print_map(ski_map):
 	for row in ski_map:
 		print(row)
 
+def print_node_list(nodes):
+	for node in nodes:
+		print(str(node))
 
 file = open('input.txt','r')
 file_lines = file.readlines()
@@ -146,6 +196,10 @@ for lodge in lodge_locs:
 print(print_map(ski_map))
 print("Stamina: "+ str(stamina))
 
-#print("Movable locations for 1, 1")
-#print(get_movable_locations((1,1)))
-bfs((4,4), (2,1))
+#print("Movable locations for 4, 4")
+
+#print(get_movable_locations((4,4)))
+start_node = Node(x=4, y=4)
+print("Cystom: " + str(start_node))
+print("****")
+print(bfs((2,1), enqueued=[start_node]))
