@@ -229,7 +229,10 @@ def a_star(end, enqueued=[]):
 				return (cost + movable_node.cost, visited)
 			elif movable_node not in visited:
 				node_cost = lambda node_1 : node_1.cost
-				bisect.insort(enqueued, movable_node, key=node_cost)
+				#bisect.insort(enqueued, movable_node, key=node_cost)
+				enqueued.append(movable_node)
+				enqueued.sort(key=node_cost)
+
 
 
 def print_map(ski_map):
@@ -238,7 +241,7 @@ def print_map(ski_map):
 
 def print_node_list(nodes):
 	for node in nodes:
-		print(str(node))
+		print(str(node) + "cost: " + str(node.cost))
 
 def write_path_to_file(paths):
 	f = open("output.txt", "w")
