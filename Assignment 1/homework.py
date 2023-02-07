@@ -2,263 +2,279 @@ import sys
 import random
 import math
 import bisect
-sys.setrecursionlimit(10000)
+#sys.setrecursionlimit(10000)
 class Node:
-	children = []
-	x_cord = None
-	y_cord = None
-	elevation = None
-	cost = 0
+    children = []
+    x_cord = None
+    y_cord = None
+    elevation = None
+    cost = 0
 
-	def __init__(self, x, y, parent=None, cost=0):
-		self.x_cord = x
-		self.y_cord = y
-		self.parent = parent
-		self.cost = cost
+    def __init__(self, x, y, parent=None, cost=0, momentum=0):
+        self.x_cord = x
+        self.y_cord = y
+        self.parent = parent
+        self.cost = cost
+        self.momentum = momentum
 
-	def __eq__(self, other):
-		return self.x_cord == other.x_cord and self.y_cord == other.y_cord and self.cost == other.cost
+    def __eq__(self, other):
+        return self.x_cord == other.x_cord and self.y_cord == other.y_cord and self.momentum == other.momentum
 
-	def __str__(self):
-		return "(" + str(self.x_cord) + "," + str(self.y_cord) + ")" 
+    def __str__(self):
+        return "(" + str(self.x_cord) + "," + str(self.y_cord) + ")" 
 
 def get_surrounding_locations(x_cord, y_cord):
-	surr = {}
+    surr = {}
 
-	surr["north"] =  (x_cord, y_cord - 1)
-	surr["south"] = (x_cord, y_cord   + 1)
-	surr["east"] = (x_cord + 1, y_cord)
-	surr["west"] = (x_cord - 1, y_cord)
-	surr["north_east"] = (x_cord + 1, y_cord - 1)
-	surr["north_west"] = (x_cord - 1, y_cord - 1)
-	surr["south_west"] = (x_cord - 1, y_cord + 1)
-	surr["south_east"] = (x_cord + 1, y_cord + 1)
+    surr["north"] =  (x_cord, y_cord - 1)
+    surr["south"] = (x_cord, y_cord   + 1)
+    surr["east"] = (x_cord + 1, y_cord)
+    surr["west"] = (x_cord - 1, y_cord)
+    surr["north_east"] = (x_cord + 1, y_cord - 1)
+    surr["north_west"] = (x_cord - 1, y_cord - 1)
+    surr["south_west"] = (x_cord - 1, y_cord + 1)
+    surr["south_east"] = (x_cord + 1, y_cord + 1)
 
-	# Eliminate out of bounds cells
-	for direction in surr:
-		if -1 in surr[direction] or surr[direction][0] == width  or surr[direction][1] == height:
-			surr[direction] = None
+    # Eliminate out of bounds cells
+    for direction in surr:
+        if -1 in surr[direction] or surr[direction][0] == width  or surr[direction][1] == height:
+            surr[direction] = None
 
-	return surr
+    return surr
 
-def is_move_allowed(start_position, end_position):
-	# Stamina check
-	#print("Move allowed from " + str(start_position) + "to " + str(end_position) + "??")
-	is_allowed = False
-	if end_position is None:
-		return False
+def is_move_allowed(start_position, end_position, consider_momentum=False):
+    # Stamina check
+    #print("Move allowed from " + str(start_position) + "to " + str(end_position) + "??")
+    is_allowed = False
+    if end_position is None:
+        return False
 
-	start_x, start_y = start_position
-	dest_x, dest_y = end_position
+    start_x, start_y = start_position
+    dest_x, dest_y = end_position
 
-	is_dest_tree = True if ski_map[dest_y][dest_x] < 0 else False
-	#print("Values")
-	#print("abs(ski_map[start_y][start_x])" + str(abs(ski_map[start_y][start_x])))
-
-
-	if abs(ski_map[start_y][start_x]) >= abs(ski_map[dest_y][dest_x]) and is_dest_tree:
-		# Tree height check
-		is_allowed = True
-	elif abs(ski_map[start_y][start_x]) <= ski_map[dest_y][dest_x] and not is_dest_tree:
-		# Stamina check
-		if stamina >= ski_map[dest_y][dest_x] - abs(ski_map[start_y][start_x]):
-			is_allowed = True
-	elif abs(ski_map[start_y][start_x]) >= ski_map[dest_y][dest_x] and not is_dest_tree:
-		is_allowed = True
-
-	return is_allowed
+    is_dest_tree = True if ski_map[dest_y][dest_x] < 0 else False
+    #print("Values")
+    #print("abs(ski_map[start_y][start_x])" + str(abs(ski_map[start_y][start_x])))
 
 
-def get_movable_locations(position, random_order=False):
-	
-	x_cord, y_cord = position
+    if abs(ski_map[start_y][start_x]) >= abs(ski_map[dest_y][dest_x]) and is_dest_tree:
+        # Tree height check
+        is_allowed = True
+    elif abs(ski_map[start_y][start_x]) <= ski_map[dest_y][dest_x] and not is_dest_tree and not consider_momentum:
+        # Stamina check
+        if stamina >= ski_map[dest_y][dest_x] - abs(ski_map[start_y][start_x]):
+            is_allowed = True
+    elif abs(ski_map[start_y][start_x]) >= ski_map[dest_y][dest_x] and not is_dest_tree:
+        is_allowed = True
 
-	surrounding_locations = get_surrounding_locations(x_cord, y_cord)
+    if consider_momentum:
+        elevation_change = ski_map[dest_y][dest_x] - ski_map[start_y][start_x]
+        if elevation_change <= stamina + calculate_momentum(start_position, end_position, elevation_change):
+            is_allowed = True
 
-	if random_order:
-		location_keys = list(surrounding_locations.keys())
-		shuffled_locations = {}
-		random.shuffle(location_keys)
+    print("Move allowed" + str(is_allowed))
+    return is_allowed
 
-		for k in location_keys:
-		  shuffled_locations[k] = surrounding_locations[k]
-		
-		surrounding_locations = shuffled_locations
-	movable_locations = []
 
-	for surrounding_location in surrounding_locations:
-		is_movable = is_move_allowed(position, surrounding_locations[surrounding_location])
+def get_movable_locations(position, random_order=False, consider_momentum=False):
+    
+    x_cord, y_cord = position
 
-		if is_movable:
-			movable_locations.append(surrounding_locations[surrounding_location])
+    surrounding_locations = get_surrounding_locations(x_cord, y_cord)
 
-	return movable_locations
+    if random_order:
+        location_keys = list(surrounding_locations.keys())
+        shuffled_locations = {}
+        random.shuffle(location_keys)
+
+        for k in location_keys:
+          shuffled_locations[k] = surrounding_locations[k]
+        
+        surrounding_locations = shuffled_locations
+    movable_locations = []
+
+    for surrounding_location in surrounding_locations:
+        is_movable = is_move_allowed(position, surrounding_locations[surrounding_location], consider_momentum)
+
+        if is_movable:
+            movable_locations.append(surrounding_locations[surrounding_location])
+
+    return movable_locations
 
 def calculate_momentum(start, end, elevation_change):
-	if elevation_change <= 0:
-		return 0
-	elif elevation_change > 0:
-		return max(0, elevation_change)
-	else:
-		raise Exception("Whoops! This wasn't supposed to happen")
+    if elevation_change <= 0:
+        return 0
+    elif elevation_change > 0:
+        return max(0, elevation_change)
+    else:
+        raise Exception("Whoops! This wasn't supposed to happen")
 
 def elevation_change_cost(start, end):
-	elevation_change = ski_map[end[1]][end[0]] - ski_map[start[1]][start[0]]
-	momentum = calculate_momentum(start, end, elevation_change)
+    elevation_change = ski_map[end[1]][end[0]] - ski_map[start[1]][start[0]]
+    momentum = calculate_momentum(start, end, elevation_change)
 
-	if elevation_change <= momentum:
-		return 0
-	elif elevation_change > momentum:
-		return max(0, elevation_change - momentum)
-	else:
-		raise Exception("Whoops! This wasn't supposed to happen")
+    if elevation_change <= momentum:
+        return 0
+    elif elevation_change > momentum:
+        return max(0, elevation_change - momentum)
+    else:
+        raise Exception("Whoops! This wasn't supposed to happen")
 
 
 def euc_distance(point_1, point_2):
-	distance = (point_1[0] - point_2[0]) ** 2 + (point_1[1] - point_2[1]) ** 2
-	return math.sqrt(distance)
+    distance = (point_1[0] - point_2[0]) ** 2 + (point_1[1] - point_2[1]) ** 2
+    return math.sqrt(distance)
 
 def get_cost_to_node(start, end, destination):
-	move_cost = 0
-	if abs(start[0] - end[0]) + abs(start[1] - end[1]) == 1:
-		move_cost = 10
-	elif abs(start[0] - end[0]) + abs(start[1] - end[1]) >= 1:
-		move_cost = 14
+    move_cost = 0
+    if abs(start[0] - end[0]) + abs(start[1] - end[1]) == 1:
+        move_cost = 10
+    elif abs(start[0] - end[0]) + abs(start[1] - end[1]) >= 1:
+        move_cost = 14
 
-	move_cost += elevation_change_cost(start, end)
+    move_cost += elevation_change_cost(start, end)
 
-	# Heuristic
-	move_cost += euc_distance(end, destination)
-	
-	return move_cost
+    # Heuristic
+    move_cost += euc_distance(end, destination)
+    
+    return move_cost
 
 
 def convert_locations_to_nodes(locations, parent, cost=0, destination=None):
-	nodes = []
-	for location in locations:
-		cost_to_node = None
-		if parent is not None and destination is not None:
-			cost_to_node = parent.cost + get_cost_to_node((parent.x_cord, parent.y_cord), location, destination) 
-		node = Node(x=location[0], y=location[1], parent=parent, cost=cost_to_node)
-		nodes.append(node)
+    nodes = []
+    momentum = 0
+    for location in locations:
+        cost_to_node = None
+        if parent is not None and destination is not None:
+            cost_to_node = parent.cost + get_cost_to_node((parent.x_cord, parent.y_cord), location, destination)
+            elevation_change = ski_map[location[1]][location[0]] - ski_map[parent.y_cord][parent.x_cord]
+            momentum = calculate_momentum(None, None, elevation_change) 
+        node = Node(x=location[0], y=location[1], parent=parent, cost=cost_to_node, momentum=momentum)
+        nodes.append(node)
 
-	return nodes
-	
+    return nodes
+    
 
 def trace_to_root(node_list):
-	if len(node_list) == 0:
-		return []
+    if len(node_list) == 0:
+        return []
 
-	leaf = node_list[-1]
-	node = leaf
-	path = []
+    leaf = node_list[-1]
+    node = leaf
+    path = []
 
-	while(1):
-		if node.parent is None:
-			path.append(node)
-			path.reverse()
-			return path
+    while(1):
+        if node.parent is None:
+            path.append(node)
+            path.reverse()
+            return path
 
-		
-		path.append(node)
-		node = node.parent
+        
+        path.append(node)
+        node = node.parent
 
 def bfs(end, visited=[], cost=0, enqueued=[]):
-	while 1:
-		if len(enqueued) <= 0:
-			return "FAIL", []
+    while 1:
+        if len(enqueued) <= 0:
+            return "FAIL", []
 
-		node = enqueued.pop(0)
-		
-		cost = cost+1
+        node = enqueued.pop(0)
+        
+        cost = cost+1
 
-		visited.append(node)
-		movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=True)
-		movable_nodes = convert_locations_to_nodes(movable_locations, node)
-		
+        visited.append(node)
+        movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=True)
+        movable_nodes = convert_locations_to_nodes(movable_locations, node)
+        
 
-		for movable_node in movable_nodes:
-			if (movable_node.x_cord, movable_node.y_cord) == end:
-				
-				visited.append(movable_node)
-				return (cost + 1, visited)
-			elif movable_node not in visited:
-				enqueued.append(movable_node)
+        for movable_node in movable_nodes:
+            if (movable_node.x_cord, movable_node.y_cord) == end:
+                
+                visited.append(movable_node)
+                return (cost + 1, visited)
+            elif movable_node not in visited:
+                enqueued.append(movable_node)
 
 
-def ucs(end, visited=[], cost=0, enqueued=[]):	
-	while 1:
-		if len(enqueued) <= 0:
-			return "FAIL", []
+def ucs(end, visited=[], cost=0, enqueued=[]):  
+    while 1:
+        if len(enqueued) <= 0:
+            return "FAIL", []
 
-		node = enqueued.pop(0)
-		
-		cost = cost+1
+        node = enqueued.pop(0)
+        
+        cost = cost+1
 
-		visited.append(node)
-		movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False)
-		movable_nodes = convert_locations_to_nodes(movable_locations, node)
-		
+        visited.append(node)
+        movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False)
+        movable_nodes = convert_locations_to_nodes(movable_locations, node)
+        
 
-		for movable_node in movable_nodes:
-			if (movable_node.x_cord, movable_node.y_cord) == end:
-				
-				visited.append(movable_node)
-				return (cost + 1, visited)
-			elif movable_node not in visited:
-				enqueued.append(movable_node)
+        for movable_node in movable_nodes:
+            if (movable_node.x_cord, movable_node.y_cord) == end:
+                
+                visited.append(movable_node)
+                return (cost + 1, visited)
+            elif movable_node not in visited:
+                enqueued.append(movable_node)
 
 
 def a_star(end, enqueued=[]):
-	visited = []
-	
-	while 1:
-		if len(enqueued) <= 0:
-			return "FAIL", []
+    visited = []
+    
+    while 1:
+        if len(enqueued) <= 0:
+            return "FAIL", []
 
-		node = enqueued.pop(0)
-		cost = node.cost
+        node = enqueued.pop(0)
+        cost = node.cost
+        print("Node: " + str(node) + " With cost: " + str(node.cost))
 
-		visited.append(node)
-		movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False)
-		movable_nodes = convert_locations_to_nodes(movable_locations, node, destination=end)
+        visited.append(node)
+        movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False, consider_momentum=True)
+        movable_nodes = convert_locations_to_nodes(movable_locations, node, destination=end)
+        print("movable_nodes")
+        print_node_list(movable_nodes)
 
-		for movable_node in movable_nodes:
-			if (movable_node.x_cord, movable_node.y_cord) == end:
-				visited.append(movable_node)
-				return (cost + movable_node.cost, visited)
-			elif movable_node not in visited:
-				node_cost = lambda node_1 : node_1.cost
-				#bisect.insort(enqueued, movable_node, key=node_cost)
-				enqueued.append(movable_node)
-				enqueued.sort(key=node_cost)
+        print("visited nodes")
+        print_node_list(visited)
+
+        for movable_node in movable_nodes:
+            if (movable_node.x_cord, movable_node.y_cord) == end:
+                visited.append(movable_node)
+                return (cost + movable_node.cost, visited)
+            elif movable_node not in visited:
+                node_cost = lambda node_1 : node_1.cost
+                #bisect.insort(enqueued, movable_node, key=node_cost)
+                enqueued.append(movable_node)
+                enqueued.sort(key=node_cost)
 
 
 
 def print_map(ski_map):
-	for row in ski_map:
-		print(row)
+    for row in ski_map:
+        print(row)
 
 def print_node_list(nodes):
-	for node in nodes:
-		print(str(node) + "cost: " + str(node.cost))
+    for node in nodes:
+        print(str(node) + "momentum: " + str(node.momentum))
 
 def write_path_to_file(paths):
-	f = open("output.txt", "w")
-	if paths is None or len(paths) == 0:
-		f.write("FAIL")
-		return
+    f = open("output.txt", "w")
+    if paths is None or len(paths) == 0:
+        f.write("FAIL")
+        return
 
-	for path in paths:
-		if len(path) == 0:
-			line = "FAIL\n"
-		else:
-			line = ""
-			for node in path:
-				line = line + f"{node.x_cord},{node.y_cord} "
-			
-			line = line + "\n"
-		f.write(line)
+    for path in paths:
+        if len(path) == 0:
+            line = "FAIL\n"
+        else:
+            line = ""
+            for node in path:
+                line = line + f"{node.x_cord},{node.y_cord} "
+            
+            line = line + "\n"
+        f.write(line)
 
 
 
@@ -285,40 +301,40 @@ num_lodges = int(file_lines[4])
 lodge_locs = []
 counter = 5
 for i in range(5, 5 + num_lodges):
-	counter = counter + 1
-	loc_x, loc_y = file_lines[i].strip().split(" ")
-	loc_x = int(loc_x)
-	loc_y = int(loc_y)
-	lodge_locs.append((loc_x, loc_y))
+    counter = counter + 1
+    loc_x, loc_y = file_lines[i].strip().split(" ")
+    loc_x = int(loc_x)
+    loc_y = int(loc_y)
+    lodge_locs.append((loc_x, loc_y))
 
 
 ski_map = [] # Supposed to be an array of arrays
 
 for i in range(0, height):
-	ski_map_row = file_lines[counter].strip().split(" ")
-	ski_map_row = [int(e) for e in ski_map_row]
-	ski_map.append(ski_map_row)
-	counter += 1
+    ski_map_row = file_lines[counter].strip().split(" ")
+    ski_map_row = [int(e) for e in ski_map_row]
+    ski_map.append(ski_map_row)
+    counter += 1
 
 
 paths = []
 
 for lodge_loc in lodge_locs:
-	if algorithm == "BFS":
-		start_node = Node(x=start_x, y=start_y)
-		cost, visted_node_list = bfs((lodge_loc[0], lodge_loc[1]), enqueued=[start_node])
-		path = trace_to_root(visted_node_list)
-		paths.append(path)
-	elif algorithm == "UCS":
-		start_node = Node(x=start_x, y=start_y)
-		cost, visted_node_list = ucs((lodge_loc[0], lodge_loc[1]), enqueued=[start_node])
-		path = trace_to_root(visted_node_list)
-		paths.append(path)
-	elif algorithm == "A*":
-		start_node = Node(x=start_x, y=start_y)
-		cost, visted_node_list = a_star((lodge_loc[0], lodge_loc[1]), enqueued=[start_node])
-		path = trace_to_root(visted_node_list)
-		paths.append(path)
+    if algorithm == "BFS":
+        start_node = Node(x=start_x, y=start_y)
+        cost, visted_node_list = bfs((lodge_loc[0], lodge_loc[1]), enqueued=[start_node])
+        path = trace_to_root(visted_node_list)
+        paths.append(path)
+    elif algorithm == "UCS":
+        start_node = Node(x=start_x, y=start_y)
+        cost, visted_node_list = ucs((lodge_loc[0], lodge_loc[1]), enqueued=[start_node])
+        path = trace_to_root(visted_node_list)
+        paths.append(path)
+    elif algorithm == "A*":
+        start_node = Node(x=start_x, y=start_y)
+        cost, visted_node_list = a_star((lodge_loc[0], lodge_loc[1]), enqueued=[start_node])
+        path = trace_to_root(visted_node_list)
+        paths.append(path)
 
 
 write_path_to_file(paths)
