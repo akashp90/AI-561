@@ -1,8 +1,6 @@
-import sys
 import random
 import math
-import bisect
-#sys.setrecursionlimit(10000)
+
 class Node:
     children = []
     x_cord = None
@@ -46,7 +44,7 @@ def get_surrounding_locations(x_cord, y_cord):
 
 def is_move_allowed(start_position, end_position, momentum=None):
     # Stamina check
-    #print("Move allowed from " + str(start_position) + "to " + str(end_position) + "??")
+
     is_allowed = False
     if end_position is None:
         return False
@@ -55,9 +53,6 @@ def is_move_allowed(start_position, end_position, momentum=None):
     dest_x, dest_y = end_position
 
     is_dest_tree = True if ski_map[dest_y][dest_x] < 0 else False
-    #print("Values")
-    #print("abs(ski_map[start_y][start_x])" + str(abs(ski_map[start_y][start_x])))
-
 
     if abs(ski_map[start_y][start_x]) >= abs(ski_map[dest_y][dest_x]) and is_dest_tree:
         # Tree height check
@@ -69,12 +64,12 @@ def is_move_allowed(start_position, end_position, momentum=None):
     elif abs(ski_map[start_y][start_x]) >= ski_map[dest_y][dest_x] and not is_dest_tree:
         is_allowed = True
 
+    
     if momentum is not None:
         elevation_change = ski_map[dest_y][dest_x] - ski_map[start_y][start_x]
-        if elevation_change <= stamina + momentum:
+        if elevation_change <= stamina + momentum and not is_dest_tree:
             is_allowed = True
 
-    #print("Move allowed" + str(is_allowed))
     return is_allowed
 
 
@@ -232,7 +227,7 @@ def a_star(end, enqueued=[]):
         previous_node = node.parent
 
         if previous_node is not None:
-            elevation_change = previous_node.elevation - node.elevation
+            elevation_change = abs(previous_node.elevation) - abs(node.elevation)
             print("Elevation change:" + str(elevation_change))
             momentum = calculate_momentum(elevation_change)
 
@@ -282,9 +277,6 @@ def write_path_to_file(paths):
             
             line = line + "\n"
         f.write(line)
-
-
-
 
 file = open('input.txt','r')
 file_lines = file.readlines()
