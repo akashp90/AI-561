@@ -18,7 +18,10 @@ class Node:
         self.elevation = ski_map[y][x]
 
     def __eq__(self, other):
-        return self.x_cord == other.x_cord and self.y_cord == other.y_cord and self.momentum == other.momentum
+        if self.momentum is not None and other.momentum is not None:
+            return self.x_cord == other.x_cord and self.y_cord == other.y_cord and self.momentum == other.momentum
+        else:    
+            return self.x_cord == other.x_cord and self.y_cord == other.y_cord
 
     def __str__(self):
         return "(" + str(self.x_cord) + "," + str(self.y_cord) + ")" 
@@ -166,30 +169,53 @@ def trace_to_root(node_list):
         path.append(node)
         node = node.parent
 
-def bfs(end, visited=[], cost=0, enqueued=[]):
+
+def final_destination_unreachable(location):
+    surrounding_locations = list(get_surrounding_locations(location[0], location[1]).values())
+    surrounding_locations = [surr for surr in surrounding_locations if surr is not None]
+    is_unreachable = False
+    
+    for surrounding_location in surrounding_locations:
+        if is_move_allowed(surrounding_location, location):
+            return False
+
+    return True
+
+
+
+def bfs(end, cost=0, enqueued=[]):
+    visited = []
+    visited_normal = []
+    if final_destination_unreachable(end):
+        print("Final destination" + str(end) +  "unreachable from all sides, aborting")
+        return "FAIL", []
     while 1:
-        if len(enqueued) <= 0:
-            return "FAIL", []
+        if len(enqueued) == 0:
+            print("Nothing to expand for end node " + str(end) + ", aborting")
+            return "FAIL", []            
 
         node = enqueued.pop(0)
-        
         cost = cost+1
 
         visited.append(node)
-        movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=True)
+        visited_normal.append((node.x_cord, node.y_cord))
+        movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False)
         movable_nodes = convert_locations_to_nodes(movable_locations, node)
-        
 
         for movable_node in movable_nodes:
-            if (movable_node.x_cord, movable_node.y_cord) == end:
-                
+            if (movable_node.x_cord, movable_node.y_cord) == end:        
                 visited.append(movable_node)
+                print("At destination!")
                 return (cost + 1, visited)
-            elif movable_node not in visited:
+            elif movable_node not in visited and movable_node not in enqueued and (movable_node.x_cord, movable_node.y_cord) not in visited_normal:
                 enqueued.append(movable_node)
 
 
 def ucs(end, visited=[], cost=0, enqueued=[]):  
+    if final_destination_unreachable(end):
+        print("Final destination unreachable, aborting")
+        return "FAIL", []
+
     while 1:
         if len(enqueued) <= 0:
             return "FAIL", []
@@ -217,8 +243,6 @@ def a_star(end, enqueued=[]):
     momentum = 0
     
     while 1:
-        print("Enq")
-        print_node_list(enqueued)
         if len(enqueued) <= 0:
             return "FAIL", []
 
@@ -228,18 +252,10 @@ def a_star(end, enqueued=[]):
 
         if previous_node is not None:
             elevation_change = abs(previous_node.elevation) - abs(node.elevation)
-            print("Elevation change:" + str(elevation_change))
             momentum = calculate_momentum(elevation_change)
 
-        print("********")
-        print("Node: " + str(node) + " With momentum: " + str(momentum))
         movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False, momentum=momentum)
         movable_nodes = convert_locations_to_nodes(movable_locations, node, destination=end, momentum=momentum)
-        print("movable_nodes")
-        print_node_list(movable_nodes)
-
-        print("visited nodes")
-        print_node_list(visited)
 
         node.momentum = momentum
         visited.append(node)
@@ -278,7 +294,7 @@ def write_path_to_file(paths):
             line = line + "\n"
         f.write(line)
 
-file = open('input.txt','r')
+file = open('input10.txt','r')
 file_lines = file.readlines()
 
 
@@ -317,11 +333,15 @@ for i in range(0, height):
 
 
 paths = []
-
-for lodge_loc in lodge_locs:
+LOOP_STOP_TIME = 25000
+for index, lodge_loc in enumerate(lodge_locs):
+    print("***")
+    print("Counter: " + str(index) + "/" + str(len(lodge_locs)))
+    print("Looking to get to: " + str(lodge_loc))
     if algorithm == "BFS":
         start_node = Node(x=start_x, y=start_y)
-        cost, visted_node_list = bfs((lodge_loc[0], lodge_loc[1]), enqueued=[start_node])
+        enqueued = [start_node]
+        cost, visted_node_list = bfs((lodge_loc[0], lodge_loc[1]), enqueued=enqueued)
         path = trace_to_root(visted_node_list)
         paths.append(path)
     elif algorithm == "UCS":
