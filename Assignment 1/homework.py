@@ -199,7 +199,7 @@ def bfs(end, cost=0, enqueued=[]):
 
         visited.append(node)
         visited_normal.append((node.x_cord, node.y_cord))
-        movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False)
+        movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=True)
         movable_nodes = convert_locations_to_nodes(movable_locations, node)
         print("movable_locations length: " + str(len(movable_nodes)))
 
@@ -213,29 +213,31 @@ def bfs(end, cost=0, enqueued=[]):
 
 
 def ucs(end, visited=[], cost=0, enqueued=[]):  
+    visited = []
+    visited_normal = []
     if final_destination_unreachable(end):
-        print("Final destination unreachable, aborting")
+        print("Final destination" + str(end) +  "unreachable from all sides, aborting")
         return "FAIL", []
-
     while 1:
-        if len(enqueued) <= 0:
-            return "FAIL", []
+        if len(enqueued) == 0:
+            print("Nothing to expand for end node " + str(end) + ", aborting")
+            return "FAIL", []            
 
         node = enqueued.pop(0)
-        
         cost = cost+1
 
         visited.append(node)
+        visited_normal.append((node.x_cord, node.y_cord))
         movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False)
         movable_nodes = convert_locations_to_nodes(movable_locations, node)
-        
+        print("movable_locations length: " + str(len(movable_nodes)))
 
         for movable_node in movable_nodes:
-            if (movable_node.x_cord, movable_node.y_cord) == end:
-                
+            if (movable_node.x_cord, movable_node.y_cord) == end:        
                 visited.append(movable_node)
+                print("At destination!")
                 return (cost + 1, visited)
-            elif movable_node not in visited:
+            elif movable_node not in visited and movable_node not in enqueued and (movable_node.x_cord, movable_node.y_cord) not in visited_normal:
                 enqueued.append(movable_node)
 
 
