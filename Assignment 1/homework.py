@@ -201,6 +201,7 @@ def bfs(end, cost=0, enqueued=[]):
         visited_normal.append((node.x_cord, node.y_cord))
         movable_locations = get_movable_locations((node.x_cord, node.y_cord), random_order=False)
         movable_nodes = convert_locations_to_nodes(movable_locations, node)
+        print("movable_locations length: " + str(len(movable_nodes)))
 
         for movable_node in movable_nodes:
             if (movable_node.x_cord, movable_node.y_cord) == end:        
